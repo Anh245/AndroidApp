@@ -1,0 +1,47 @@
+@base = http://localhost:3000
+@token = REPLACE_WITH_ACCESS_TOKEN
+@categoryId = REPLACE_WITH_EXPENSE_CATEGORY_UUID
+
+### Health
+GET {{base}}/health
+
+### Login (run seed first, or use your own registered account)
+POST {{base}}/api/auth/login
+X-Requested-With: expense-manager
+Content-Type: application/json
+
+{"email":"demo@example.com","password":"Demo@12345"}
+
+### Copy accessToken above into @token
+GET {{base}}/api/categories
+Authorization: Bearer {{token}}
+
+### Copy expense category id above into @categoryId
+POST {{base}}/api/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"categoryId":"{{categoryId}}","kind":"expense","amount":50000,"occurredOn":"2026-10-12","note":"Ăn trưa","paymentMethod":"cash"}
+
+### Report
+GET {{base}}/api/reports/summary?month=2026-10
+Authorization: Bearer {{token}}
+
+### Budget
+PUT {{base}}/api/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"categoryId":"{{categoryId}}","month":"2026-10","amount":2000000}
+
+### Profile
+GET {{base}}/api/users/me
+Authorization: Bearer {{token}}
+
+### Refresh: HTTP client must keep cookies from the login response
+POST {{base}}/api/auth/refresh
+X-Requested-With: expense-manager
+
+### Logout: sends the same cookie; server deletes it
+POST {{base}}/api/auth/logout
+X-Requested-With: expense-manager

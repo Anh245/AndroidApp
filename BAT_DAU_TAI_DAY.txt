@@ -1,0 +1,21 @@
+PROJECT QUẢN LÝ CHI TIÊU CÁ NHÂN
+Flutter + Node.js + PostgreSQL | Kiến trúc Client–Server
+
+1. Mở thư mục expense_manager bằng VS Code (File > Open Folder).
+2. Mở README.md để xem tổng quan.
+3. Mở docs/HUONG_DAN_WINDOWS.md để làm từng bước.
+   Trong VS Code, Ctrl+Shift+V để xem file Markdown ở chế độ dễ đọc.
+
+Chạy thử nhanh nếu đã có Docker Desktop và Flutter:
+  docker compose up --build -d
+  docker compose exec api npm run seed
+  cd mobile
+  flutter pub get
+  flutter run -d chrome --web-port 5173 --dart-define=API_BASE_URL=http://localhost:3000/api
+
+Tài khoản mẫu: demo@example.com
+Mật khẩu mẫu: Demo@12345
+(chỉ có sau khi chạy lệnh seed)
+
+Chưa cài công cụ thì đọc hướng dẫn Windows trước, không chạy lệnh vội.
+Đây là mã nguồn bản đầu tiên, không phải file APK đã ký phát hành.

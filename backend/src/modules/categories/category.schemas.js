@@ -1,0 +1,1 @@
+export { categoryBody, uuid } from "../../validation.js";

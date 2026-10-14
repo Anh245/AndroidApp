@@ -1,0 +1,10 @@
+**/node_modules/
+**/.env
+**/.dart_tool/
+**/build/
+**/.flutter-plugins*
+**/local.properties
+**/key.properties
+**/*.jks
+.idea/
+.DS_Store

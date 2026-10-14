@@ -1,0 +1,26 @@
+KẾT QUẢ KIỂM TRA GÓI MÃ NGUỒN v1.0 — 12/10/2026
+
+Môi trường kiểm tra:
+- Node.js 24.19.0
+- Flutter 3.35.7, Dart 3.9.2
+- Linux, kiểm thử SQL qua PGlite (PostgreSQL WebAssembly)
+
+ĐÃ CHẠY:
+1. npm test: PASS — 12 test được Node báo cáo (11 tình huống con + test cha), 0 lỗi.
+   Đi qua HTTP Express, xác thực, CRUD, SQL/ràng buộc, tổng hợp tháng và cách ly tài khoản.
+2. flutter analyze: PASS — No issues found.
+3. flutter test: PASS — 5 test, gồm unit test và widget test.
+4. flutter build web --no-web-resources-cdn --no-wasm-dry-run
+   --dart-define=API_BASE_URL=http://localhost:3000/api: PASS — Built build/web.
+
+CHƯA KIỂM CHỨNG TRONG MÔI TRƯỜNG BÀN GIAO:
+- Build APK và chạy trên Android Emulator/LDPlayer/điện thoại thật.
+- Docker Compose, PostgreSQL server qua TCP và migration/seed trên máy Windows.
+- Kiểm thử end-to-end trong Chrome thật; môi trường kiểm tra không tải được gói Chromium.
+- Phát hành ứng dụng, HTTPS production, ký APK hoặc kiểm thử tải lớn.
+
+Source Android/web đã có trong project. Thư mục build và node_modules không đóng gói;
+người nhận cài thư viện bằng npm ci / flutter pub get rồi chạy theo hướng dẫn.
+Giữ package-lock.json và pubspec.lock để tái lập các phiên bản đã chọn.
+
+Đọc docs/KIEM_THU.md để tự chạy lại và kiểm tra giao diện trên thiết bị của nhóm.
