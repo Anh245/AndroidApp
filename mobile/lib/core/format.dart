@@ -15,7 +15,7 @@ void showError(BuildContext context, Object error) =>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(error.toString()),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
 String? validateAmount(String? value) {

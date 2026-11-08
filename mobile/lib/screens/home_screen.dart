@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 import '../core/session.dart';
 import '../core/format.dart';
 import '../widgets/summary_view.dart';
+import '../widgets/management_views.dart';
 import 'editors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,7 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool loading = true, loadingMore = false, mutating = false;
   String? error;
   Map<String, dynamic> summary = {};
-  List<Map<String, dynamic>> categories = [], entries = [], budgets = [];
+  List<Map<String, dynamic>> categories = [],
+      entries = [],
+      budgets = [],
+      recentEntries = [];
   static const titles = ['Tổng quan', 'Giao dịch', 'Ngân sách', 'Danh mục'];
   @override
   void initState() {
@@ -54,6 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
         api.request('GET', '/reports/summary', query: {'month': m}),
         api.request('GET', '/transactions', query: entryQuery(1)),
         api.request('GET', '/budgets', query: {'month': m}),
+        api.request(
+          'GET',
+          '/transactions',
+          query: {'month': m, 'page': '1', 'limit': '3'},
+        ),
       ]);
       if (!mounted || current != generation) return;
       setState(() {
@@ -63,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         total = results[2]['total'];
         page = 1;
         budgets = List<Map<String, dynamic>>.from(results[3]);
+        recentEntries = List<Map<String, dynamic>>.from(results[4]['items']);
         loading = false;
       });
     } catch (e) {
@@ -160,7 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(titles[tab]),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'SỔ CHI TIÊU',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          Text(titles[tab]),
+        ],
+      ),
+      toolbarHeight: 80,
       actions: [
         IconButton(
           tooltip: 'Tải lại',
@@ -195,12 +218,17 @@ class _HomeScreenState extends State<HomeScreen> {
     body: SafeArea(
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
+          constraints: const BoxConstraints(maxWidth: AppLayout.contentWidth),
           child: Column(
             children: [
               if (tab != 3)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.lg,
+                    AppSpace.xs,
+                    AppSpace.lg,
+                    AppSpace.sm,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -209,14 +237,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () => changeMonth(-1),
                         icon: const Icon(Icons.chevron_left),
                       ),
-                      TextButton.icon(
-                        onPressed: pickMonth,
-                        icon: const Icon(Icons.calendar_month_outlined),
-                        label: Text(
-                          'Tháng ${month.month.toString().padLeft(2, '0')}/${month.year}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
+                      Flexible(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: const StadiumBorder(),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurface,
+                          ),
+                          onPressed: pickMonth,
+                          icon: const Icon(Icons.calendar_month_outlined),
+                          label: Text(
+                            'Tháng ${month.month}, ${month.year}',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -234,12 +271,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     : error != null
                     ? Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(AppSpace.xl),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(error!, textAlign: TextAlign.center),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppSpace.lg),
                               FilledButton(
                                 onPressed: load,
                                 child: const Text('Thử lại'),
@@ -252,10 +289,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         onRefresh: load,
                         child: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpace.lg,
+                            AppSpace.sm,
+                            AppSpace.lg,
+                            AppSpace.lg,
+                          ),
                           children: [
                             if (tab == 0)
-                              SummaryView(summary: summary, budgets: budgets),
+                              SummaryView(
+                                summary: summary,
+                                budgets: budgets,
+                                recentEntries: recentEntries,
+                                onViewAll: () => setState(() => tab = 1),
+                                onEntryTap: (entry) => openEditor(
+                                  TransactionEditor(
+                                    api: widget.session.api,
+                                    categories: categories,
+                                    entry: entry,
+                                  ),
+                                ),
+                              ),
                             if (tab == 1) ...transactionWidgets(),
                             if (tab == 2) ...budgetWidgets(),
                             if (tab == 3) ...categoryWidgets(),
@@ -268,304 +322,134 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     ),
-    floatingActionButton: loading || error != null || mutating
-        ? null
-        : FloatingActionButton.extended(
-            onPressed: add,
-            icon: const Icon(Icons.add),
-            label: Text(
-              tab == 2
-                  ? 'Đặt ngân sách'
-                  : tab == 3
-                  ? 'Tạo danh mục'
-                  : 'Thêm giao dịch',
+    bottomNavigationBar: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!loading && error == null)
+          SafeArea(
+            top: false,
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppLayout.contentWidth,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      key: const ValueKey('primary-add-action'),
+                      style: FilledButton.styleFrom(
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      onPressed: mutating ? null : add,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        tab == 2
+                            ? 'Đặt ngân sách'
+                            : tab == 3
+                            ? 'Tạo danh mục'
+                            : 'Thêm giao dịch',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-    bottomNavigationBar: NavigationBar(
-      selectedIndex: tab,
-      onDestinationSelected: (i) => setState(() => tab = i),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Tổng quan',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          selectedIcon: Icon(Icons.receipt_long),
-          label: 'Giao dịch',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.savings_outlined),
-          selectedIcon: Icon(Icons.savings),
-          label: 'Ngân sách',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.category_outlined),
-          selectedIcon: Icon(Icons.category),
-          label: 'Danh mục',
+        NavigationBar(
+          selectedIndex: tab,
+          onDestinationSelected: (i) => setState(() => tab = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Tổng quan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long),
+              label: 'Giao dịch',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.savings_outlined),
+              selectedIcon: Icon(Icons.savings),
+              label: 'Ngân sách',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.category_outlined),
+              selectedIcon: Icon(Icons.category),
+              label: 'Danh mục',
+            ),
+          ],
         ),
       ],
     ),
   );
   List<Widget> transactionWidgets() => [
-    TextField(
-      controller: search,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: 'Tìm ghi chú hoặc danh mục',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: IconButton(
-          tooltip: 'Tìm kiếm',
-          icon: const Icon(Icons.arrow_forward),
-          onPressed: () {
-            query = search.text.trim();
-            load();
-          },
-        ),
-      ),
-      onSubmitted: (value) {
+    TransactionsView(
+      entries: entries,
+      summary: summary,
+      total: total,
+      filter: filter,
+      search: search,
+      mutating: mutating,
+      loadingMore: loadingMore,
+      onMore: more,
+      onSearch: (value) {
         query = value.trim();
         load();
       },
+      onFilter: (value) {
+        setState(() => filter = value);
+        load();
+      },
+      onEdit: editTransaction,
+      onDelete: (entry) =>
+          remove('/transactions/${entry['id']}', 'giao dịch này'),
     ),
-    const SizedBox(height: 12),
-    Wrap(
-      spacing: 8,
-      children: [
-        for (final item in const {
-          'all': 'Tất cả',
-          'expense': 'Khoản chi',
-          'income': 'Khoản thu',
-        }.entries)
-          ChoiceChip(
-            label: Text(item.value),
-            selected: filter == item.key,
-            onSelected: (_) {
-              setState(() => filter = item.key);
-              load();
-            },
-          ),
-      ],
-    ),
-    Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text('$total giao dịch phù hợp'),
-    ),
-    if (entries.isEmpty)
-      const EmptyState(
-        title: 'Chưa có giao dịch phù hợp',
-        message: 'Thử đổi tháng, bộ lọc hoặc thêm một khoản thu/chi.',
-      ),
-    for (final entry in entries)
-      Card(
-        child: Column(
-          children: [
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: categoryColor(
-                  entry['color'],
-                ).withValues(alpha: 0.12),
-                child: Icon(
-                  entry['kind'] == 'income'
-                      ? Icons.south_west
-                      : Icons.north_east,
-                  color: categoryColor(entry['color']),
-                ),
-              ),
-              title: Text(
-                entry['categoryName'],
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                '${displayDate(entry['occurredOn'])}${entry['note'].toString().isEmpty ? '' : '\n${entry['note']}'}',
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: PopupMenuButton<String>(
-                enabled: !mutating,
-                tooltip: 'Thao tác giao dịch',
-                onSelected: (action) {
-                  if (action == 'edit') {
-                    openEditor(
-                      TransactionEditor(
-                        api: widget.session.api,
-                        categories: categories,
-                        entry: entry,
-                      ),
-                    );
-                  } else {
-                    remove('/transactions/${entry['id']}', 'giao dịch này');
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Sửa')),
-                  PopupMenuItem(value: 'delete', child: Text('Xóa')),
-                ],
-              ),
-              onTap: () => openEditor(
-                TransactionEditor(
-                  api: widget.session.api,
-                  categories: categories,
-                  entry: entry,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(72, 0, 16, 14),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${entry['kind'] == 'income' ? '+' : '−'}${money(entry['amount'])}',
-                  style: TextStyle(
-                    color: entry['kind'] == 'income'
-                        ? Colors.teal
-                        : Colors.deepOrange,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    if (entries.length < total)
-      Padding(
-        padding: const EdgeInsets.all(16),
-        child: OutlinedButton(
-          onPressed: loadingMore ? null : more,
-          child: Text(loadingMore ? 'Đang tải…' : 'Xem thêm'),
-        ),
-      ),
   ];
+
+  void editTransaction(Map<String, dynamic> entry) => openEditor(
+    TransactionEditor(
+      api: widget.session.api,
+      categories: categories,
+      entry: entry,
+    ),
+  );
+
   List<Widget> budgetWidgets() => [
-    const Text(
-      'Đặt hạn mức chi tiêu cho từng danh mục. Hạn mức áp dụng riêng cho tháng đang chọn.',
-    ),
-    const SizedBox(height: 16),
-    if (budgets.isEmpty)
-      const EmptyState(
-        title: 'Chưa đặt ngân sách tháng này',
-        message: 'Chọn “Đặt ngân sách” để bắt đầu.',
-        icon: Icons.savings_outlined,
-      ),
-    for (final b in budgets) budgetCard(b),
-  ];
-  Widget budgetCard(Map<String, dynamic> b) {
-    final spent = amountOf(b['spent']),
-        limit = amountOf(b['amount']),
-        over = spent > limit;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    b['categoryName'],
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  enabled: !mutating,
-                  tooltip: 'Thao tác ngân sách',
-                  onSelected: (a) {
-                    if (a == 'edit') {
-                      openEditor(
-                        BudgetEditor(
-                          api: widget.session.api,
-                          categories: categories,
-                          month: monthKey(month),
-                          budget: b,
-                        ),
-                      );
-                    } else {
-                      remove('/budgets/${b['id']}', 'ngân sách này');
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Sửa')),
-                    PopupMenuItem(value: 'delete', child: Text('Xóa')),
-                  ],
-                ),
-              ],
-            ),
-            Text('${money(spent)} / ${money(limit)}'),
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: (spent / limit).clamp(0, 1),
-              color: over ? Colors.red : categoryColor(b['color']),
-              minHeight: 10,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              over
-                  ? 'Vượt ${money(spent - limit)}'
-                  : 'Còn ${money(limit - spent)}',
-              style: TextStyle(
-                color: over ? Colors.red.shade700 : Colors.teal,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+    BudgetsView(
+      budgets: budgets,
+      mutating: mutating,
+      onEdit: (budget) => openEditor(
+        BudgetEditor(
+          api: widget.session.api,
+          categories: categories,
+          month: monthKey(month),
+          budget: budget,
         ),
       ),
-    );
-  }
+      onDelete: (budget) => remove('/budgets/${budget['id']}', 'ngân sách này'),
+    ),
+  ];
 
   List<Widget> categoryWidgets() => [
-    const Text(
-      'Tạo danh mục để phân loại thu nhập và chi tiêu. Danh mục đang được dùng sẽ không thể xóa.',
-    ),
-    const SizedBox(height: 16),
-    for (final kind in ['expense', 'income']) ...[
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          kind == 'expense' ? 'Danh mục khoản chi' : 'Danh mục khoản thu',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+    CategoriesView(
+      categories: categories,
+      mutating: mutating,
+      onEdit: (category) => openEditor(
+        CategoryEditor(api: widget.session.api, category: category),
       ),
-      for (final c in categories.where((c) => c['kind'] == kind))
-        Card(
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: categoryColor(
-                c['color'],
-              ).withValues(alpha: 0.12),
-              child: Icon(
-                Icons.label_outline,
-                color: categoryColor(c['color']),
-              ),
-            ),
-            title: Text(c['name']),
-            onTap: () => openEditor(
-              CategoryEditor(api: widget.session.api, category: c),
-            ),
-            trailing: PopupMenuButton<String>(
-              enabled: !mutating,
-              tooltip: 'Thao tác danh mục',
-              onSelected: (a) {
-                if (a == 'edit') {
-                  openEditor(
-                    CategoryEditor(api: widget.session.api, category: c),
-                  );
-                } else {
-                  remove('/categories/${c['id']}', 'danh mục “${c['name']}”');
-                }
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Sửa')),
-                PopupMenuItem(value: 'delete', child: Text('Xóa')),
-              ],
-            ),
-          ),
-        ),
-    ],
+      onDelete: (category) => remove(
+        '/categories/${category['id']}',
+        'danh mục “${category['name']}”',
+      ),
+    ),
   ];
 }

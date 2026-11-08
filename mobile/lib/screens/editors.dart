@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 import 'package:flutter/services.dart';
 import '../core/api.dart';
 import '../core/format.dart';
@@ -82,15 +83,21 @@ class _TransactionEditorState extends State<TransactionEditor> {
         ),
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 650),
+            constraints: const BoxConstraints(maxWidth: AppLayout.editorWidth),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppSpace.xl),
               child: Form(
                 key: form,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SegmentedButton<String>(
+                      direction:
+                          MediaQuery.sizeOf(context).width <
+                                  AppLayout.metricBreakpoint &&
+                              MediaQuery.textScalerOf(context).scale(16) > 24
+                          ? Axis.vertical
+                          : Axis.horizontal,
                       segments: const [
                         ButtonSegment(
                           value: 'expense',
@@ -111,7 +118,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                               categoryId = null;
                             }),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     TextFormField(
                       controller: amount,
                       autofocus: widget.entry == null,
@@ -124,7 +131,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                       ),
                       validator: validateAmount,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpace.xl),
                     DropdownButtonFormField<String>(
                       key: ValueKey(kind),
                       initialValue: categoryId,
@@ -146,12 +153,12 @@ class _TransactionEditorState extends State<TransactionEditor> {
                     ),
                     if (choices.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.only(top: 8),
+                        padding: EdgeInsets.only(top: AppSpace.sm),
                         child: Text(
                           'Bạn cần tạo danh mục cùng loại ở màn hình Danh mục.',
                         ),
                       ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpace.xl),
                     OutlinedButton.icon(
                       onPressed: busy
                           ? null
@@ -168,15 +175,16 @@ class _TransactionEditorState extends State<TransactionEditor> {
                             },
                       icon: const Icon(Icons.calendar_month),
                       label: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpace.md),
                         child: Text(
                           'Ngày giao dịch: ${displayDate(dateKey(date))}',
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpace.xl),
                     DropdownButtonFormField<String>(
                       initialValue: payment,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Phương thức',
                       ),
@@ -195,7 +203,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                           ? null
                           : (v) => setState(() => payment = v!),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpace.xl),
                     TextFormField(
                       controller: note,
                       maxLength: 500,
@@ -205,12 +213,12 @@ class _TransactionEditorState extends State<TransactionEditor> {
                         alignLabelWithHint: true,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpace.lg),
                     FilledButton.icon(
                       onPressed: busy ? null : save,
                       icon: const Icon(Icons.check),
                       label: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpace.md),
                         child: Text(busy ? 'Đang lưu…' : 'Lưu giao dịch'),
                       ),
                     ),
@@ -312,9 +320,9 @@ class _CategoryEditorState extends State<CategoryEditor> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 650),
+          constraints: const BoxConstraints(maxWidth: AppLayout.editorWidth),
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpace.xl),
             children: [
               Form(
                 key: form,
@@ -331,8 +339,14 @@ class _CategoryEditorState extends State<CategoryEditor> {
                           ? 'Vui lòng nhập tên'
                           : null,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpace.lg),
                     SegmentedButton<String>(
+                      direction:
+                          MediaQuery.sizeOf(context).width <
+                                  AppLayout.metricBreakpoint &&
+                              MediaQuery.textScalerOf(context).scale(16) > 24
+                          ? Axis.vertical
+                          : Axis.horizontal,
                       segments: const [
                         ButtonSegment(
                           value: 'expense',
@@ -348,12 +362,12 @@ class _CategoryEditorState extends State<CategoryEditor> {
                           ? null
                           : (s) => setState(() => kind = s.first),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpace.xl),
                     const Text('Màu nhận diện'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpace.md),
                     Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: AppSpace.md,
+                      runSpacing: AppSpace.md,
                       children: colors
                           .map(
                             (c) => Semantics(
@@ -364,14 +378,14 @@ class _CategoryEditorState extends State<CategoryEditor> {
                                 onTap: busy
                                     ? null
                                     : () => setState(() => color = c),
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: AppShape.borderRadius,
                                 child: CircleAvatar(
                                   backgroundColor: categoryColor(c),
-                                  radius: 24,
+                                  radius: AppLayout.controlSize / 2,
                                   child: color == c
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.check,
-                                          color: Colors.white,
+                                          color: contentOn(categoryColor(c)),
                                         )
                                       : null,
                                 ),
@@ -380,15 +394,15 @@ class _CategoryEditorState extends State<CategoryEditor> {
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     const Text(
                       'Danh mục đã có giao dịch hoặc ngân sách chỉ đổi được tên và màu; không đổi loại thu/chi.',
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     FilledButton(
                       onPressed: busy ? null : save,
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpace.md),
                         child: Text(busy ? 'Đang lưu…' : 'Lưu danh mục'),
                       ),
                     ),
@@ -467,9 +481,9 @@ class _BudgetEditorState extends State<BudgetEditor> {
       appBar: AppBar(title: const Text('Ngân sách tháng')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 650),
+          constraints: const BoxConstraints(maxWidth: AppLayout.editorWidth),
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpace.xl),
             children: [
               Form(
                 key: form,
@@ -480,7 +494,7 @@ class _BudgetEditorState extends State<BudgetEditor> {
                       'Tháng ${widget.month.split('-').reversed.join('/')}',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     DropdownButtonFormField<String>(
                       initialValue: categoryId,
                       isExpanded: true,
@@ -501,7 +515,7 @@ class _BudgetEditorState extends State<BudgetEditor> {
                           : (v) => setState(() => categoryId = v),
                       validator: (v) => v == null ? 'Chọn danh mục' : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     TextFormField(
                       controller: amount,
                       keyboardType: TextInputType.number,
@@ -512,15 +526,15 @@ class _BudgetEditorState extends State<BudgetEditor> {
                         suffixText: 'VND',
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpace.lg),
                     const Text(
                       'Mỗi danh mục có một hạn mức trong tháng. Lưu lại sẽ cập nhật hạn mức đã có.',
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xl),
                     FilledButton(
                       onPressed: busy ? null : save,
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpace.md),
                         child: Text(busy ? 'Đang lưu…' : 'Lưu ngân sách'),
                       ),
                     ),

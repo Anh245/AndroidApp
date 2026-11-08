@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 import '../core/session.dart';
 import '../core/format.dart';
 
@@ -44,40 +45,38 @@ class _AuthScreenState extends State<AuthScreen> {
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpace.xl),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
+            constraints: const BoxConstraints(maxWidth: AppLayout.authWidth),
             child: Form(
               key: form,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    size: 70,
-                    color: Color(0xFF0F766E),
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: AppLayout.emptyIconSize,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpace.lg),
                   Text(
                     'Sổ Chi Tiêu',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.headlineLarge,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpace.sm),
                   const Text(
                     'Hiểu dòng tiền. Chủ động mỗi ngày.',
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppSpace.section),
                   Text(
                     register
                         ? 'Tạo tài khoản cá nhân'
                         : 'Chào mừng bạn trở lại',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpace.xl),
                   if (register) ...[
                     TextFormField(
                       controller: name,
@@ -91,7 +90,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? 'Nhập ít nhất 2 ký tự'
                           : null,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpace.lg),
                   ],
                   TextFormField(
                     controller: email,
@@ -110,7 +109,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ? null
                         : 'Nhập email hợp lệ',
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpace.lg),
                   TextFormField(
                     controller: password,
                     obscureText: hidden,
@@ -121,6 +120,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       counterText: '',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
+                        tooltip: hidden ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
                         onPressed: () => setState(() => hidden = !hidden),
                         icon: Icon(
                           hidden
@@ -136,11 +136,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       if (!busy) submit();
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpace.xl),
                   FilledButton(
                     onPressed: busy ? null : submit,
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppSpace.md),
                       child: Text(
                         busy
                             ? 'Đang xử lý…'

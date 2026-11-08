@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/api.dart';
+import 'core/theme.dart';
 import 'core/session.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
@@ -49,25 +50,7 @@ class _ExpenseAppState extends State<ExpenseApp> {
     locale: const Locale('vi'),
     supportedLocales: const [Locale('vi'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
-      scaffoldBackgroundColor: const Color(0xFFF7F9FB),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F9FB),
-        centerTitle: false,
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-    ),
+    theme: expenseTheme(),
     home: ListenableBuilder(
       listenable: session,
       builder: (context, _) {
@@ -80,12 +63,12 @@ class _ExpenseAppState extends State<ExpenseApp> {
           return Scaffold(
             body: Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppSpace.xl),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(session.startupError!, textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpace.lg),
                     FilledButton(
                       onPressed: session.restore,
                       child: const Text('Thử kết nối lại'),
