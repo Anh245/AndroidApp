@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/session.dart';
 import '../core/format.dart';
+import '../widgets/animated_press.dart';
 
 class AuthScreen extends StatefulWidget {
   final Session session;
+
   const AuthScreen({super.key, required this.session});
+
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -16,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> {
       email = TextEditingController(),
       password = TextEditingController();
   bool register = false, busy = false, hidden = true;
+
   @override
   void dispose() {
     name.dispose();
@@ -70,28 +74,55 @@ class _AuthScreenState extends State<AuthScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpace.section),
-                  Text(
-                    register
-                        ? 'Tạo tài khoản cá nhân'
-                        : 'Chào mừng bạn trở lại',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  AnimatedSwitcher(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
+                    child: Text(
+                      register
+                          ? 'Tạo tài khoản cá nhân'
+                          : 'Chào mừng bạn trở lại',
+                      key: ValueKey(register),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
                   const SizedBox(height: AppSpace.xl),
-                  if (register) ...[
-                    TextFormField(
-                      controller: name,
-                      maxLength: 80,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Họ tên',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (v) => (v?.trim().length ?? 0) < 2
-                          ? 'Nhập ít nhất 2 ký tự'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpace.lg),
-                  ],
+                  AnimatedSize(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    child: register
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: name,
+                                maxLength: 80,
+                                textCapitalization: TextCapitalization.words,
+                                decoration: const InputDecoration(
+                                  labelText: 'Họ tên',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                                validator: (v) => (v?.trim().length ?? 0) < 2
+                                    ? 'Nhập ít nhất 2 ký tự'
+                                    : null,
+                              ),
+                              const SizedBox(height: AppSpace.lg),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                   TextFormField(
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
@@ -137,16 +168,18 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                   ),
                   const SizedBox(height: AppSpace.xl),
-                  FilledButton(
-                    onPressed: busy ? null : submit,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpace.md),
-                      child: Text(
-                        busy
-                            ? 'Đang xử lý…'
-                            : register
-                            ? 'Đăng ký'
-                            : 'Đăng nhập',
+                  AnimatedPress(
+                    child: FilledButton(
+                      onPressed: busy ? null : submit,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpace.md),
+                        child: Text(
+                          busy
+                              ? 'Đang xử lý…'
+                              : register
+                              ? 'Đăng ký'
+                              : 'Đăng nhập',
+                        ),
                       ),
                     ),
                   ),

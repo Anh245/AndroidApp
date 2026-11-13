@@ -5,10 +5,13 @@ import '../core/format.dart';
 import '../widgets/summary_view.dart';
 import '../widgets/management_views.dart';
 import 'editors.dart';
+import '../widgets/tab_transition.dart';
 
 class HomeScreen extends StatefulWidget {
   final Session session;
+
   const HomeScreen({super.key, required this.session});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -26,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
       budgets = [],
       recentEntries = [];
   static const titles = ['Tổng quan', 'Giao dịch', 'Ngân sách', 'Danh mục'];
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (filter != 'all') 'kind': filter,
     if (query.isNotEmpty) 'search': query,
   };
+
   Future<void> load() async {
     final current = ++generation;
     setState(() {
@@ -109,11 +114,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> openEditor(Widget editor) async {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
     final changed = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => editor),
+      PageRouteBuilder<bool>(
+        pageBuilder: (context, animation, secondaryAnimation) => editor,
+        transitionDuration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 280),
+        reverseTransitionDuration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 220),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = animation.drive(
+            CurveTween(curve: Curves.easeOutCubic),
+          );
+
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: curved.drive(
+                Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero),
+              ),
+              child: child,
+            ),
+          );
+        },
+      ),
     );
-    if (changed == true && mounted) await load();
+
+    if (changed == true && mounted) {
+      await load();
+    }
   }
 
   Future<void> remove(String path, String name) async {
@@ -285,35 +318,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       )
-                    : RefreshIndicator(
-                        onRefresh: load,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpace.lg,
-                            AppSpace.sm,
-                            AppSpace.lg,
-                            AppSpace.lg,
-                          ),
-                          children: [
-                            if (tab == 0)
-                              SummaryView(
-                                summary: summary,
-                                budgets: budgets,
-                                recentEntries: recentEntries,
-                                onViewAll: () => setState(() => tab = 1),
-                                onEntryTap: (entry) => openEditor(
-                                  TransactionEditor(
-                                    api: widget.session.api,
-                                    categories: categories,
-                                    entry: entry,
+                    : TabTransition(
+                        key: ValueKey(tab),
+                        child: RefreshIndicator(
+                          onRefresh: load,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpace.lg,
+                              AppSpace.sm,
+                              AppSpace.lg,
+                              AppSpace.lg,
+                            ),
+                            children: [
+                              if (tab == 0)
+                                SummaryView(
+                                  summary: summary,
+                                  budgets: budgets,
+                                  recentEntries: recentEntries,
+                                  onViewAll: () => setState(() => tab = 1),
+                                  onEntryTap: (entry) => openEditor(
+                                    TransactionEditor(
+                                      api: widget.session.api,
+                                      categories: categories,
+                                      entry: entry,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            if (tab == 1) ...transactionWidgets(),
-                            if (tab == 2) ...budgetWidgets(),
-                            if (tab == 3) ...categoryWidgets(),
-                          ],
+                              if (tab == 1) ...transactionWidgets(),
+                              if (tab == 2) ...budgetWidgets(),
+                              if (tab == 3) ...categoryWidgets(),
+                            ],
+                          ),
                         ),
                       ),
               ),
@@ -391,6 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     ),
   );
+
   List<Widget> transactionWidgets() => [
     TransactionsView(
       entries: entries,
