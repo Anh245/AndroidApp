@@ -27,6 +27,21 @@ export async function updateCategory(prisma, userId, id, body) {
   });
 }
 
+export function findCategory(prisma, userId, id) {
+  return prisma.category.findFirst({
+    where: { id, userId },
+    select: categorySelect,
+  });
+}
+
+export async function countCategoryUsage(prisma, userId, categoryId) {
+  const [transactions, budgets] = await Promise.all([
+    prisma.transaction.count({ where: { userId, categoryId } }),
+    prisma.budget.count({ where: { userId, categoryId } }),
+  ]);
+  return transactions + budgets;
+}
+
 export async function deleteCategory(prisma, userId, id) {
   const result = await prisma.category.deleteMany({ where: { id, userId } });
   return result.count ? { id } : null;

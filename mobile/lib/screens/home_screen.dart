@@ -113,7 +113,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> openEditor(Widget editor) async {
+  // Chỉ tải lại danh sách danh mục, không bật trạng thái loading toàn màn hình.
+  // Dùng khi tạo/xóa danh mục: các thao tác này không làm đổi giao dịch,
+  // ngân sách hay thống kê.
+  Future<void> reloadCategories() async {
+    final data = await widget.session.api.request('GET', '/categories');
+    if (!mounted) return;
+    setState(() => categories = List<Map<String, dynamic>>.from(data));
+  }
+
+  Future<void> openEditor(Widget editor, {bool categoriesOnly = false}) async {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     final changed = await Navigator.push<bool>(
@@ -144,17 +153,30 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (changed == true && mounted) {
-      await load();
+    if (changed != true || !mounted) return;
+    if (!categoriesOnly) return load();
+    try {
+      await reloadCategories();
+    } catch (e) {
+      if (mounted) showError(context, e);
     }
   }
 
-  Future<void> remove(String path, String name) async {
+  Future<void> remove(
+    String path,
+    String name, {
+    bool categoriesOnly = false,
+  }) async {
     if (mutating || !await confirmDelete(context, name) || !mounted) return;
     setState(() => mutating = true);
     try {
       await widget.session.api.request('DELETE', path);
-      if (mounted) await load();
+      if (!mounted) return;
+      if (categoriesOnly) {
+        await reloadCategories();
+      } else {
+        await load();
+      }
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -193,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } else if (tab == 3) {
-      openEditor(CategoryEditor(api: widget.session.api));
+      openEditor(CategoryEditor(api: widget.session.api), categoriesOnly: true);
     } else {
       openEditor(
         TransactionEditor(api: widget.session.api, categories: categories),
@@ -482,10 +504,12 @@ class _HomeScreenState extends State<HomeScreen> {
       mutating: mutating,
       onEdit: (category) => openEditor(
         CategoryEditor(api: widget.session.api, category: category),
+        categoriesOnly: true,
       ),
       onDelete: (category) => remove(
         '/categories/${category['id']}',
         'danh mục “${category['name']}”',
+        categoriesOnly: true,
       ),
     ),
   ];

@@ -378,6 +378,91 @@ test("authentication, finance workflows and account isolation", async (t) => {
       .expect(200);
     await call("delete", `/categories/${c.id}`).expect(204);
   });
+  await t.test("category duplicate name message and normalization", async () => {
+    const c = (
+      await call("post", "/categories")
+        .send({ name: "  Du   lịch  ", kind: "expense", color: "#3B82F6" })
+        .expect(201)
+    ).body;
+    assert.equal(c.name, "Du lịch"); // trim + gộp khoảng trắng
+    const dup = await call("post", "/categories")
+      .send({ name: "du lịch", kind: "expense" })
+      .expect(409);
+    assert.match(dup.body.message, /Tên danh mục đã tồn tại/);
+    assert.doesNotMatch(dup.body.message, /Email/i);
+    // Cùng tên nhưng khác dạng Unicode (NFD) và nhiều khoảng trắng vẫn bị coi là trùng
+    await call("post", "/categories")
+      .send({ name: "Du  lịch".normalize("NFD"), kind: "expense" })
+      .expect(409);
+    // Cùng tên nhưng khác loại thu/chi thì hợp lệ
+    const other = (
+      await call("post", "/categories")
+        .send({ name: "Du lịch", kind: "income" })
+        .expect(201)
+    ).body;
+    // Đổi tên thành tên đã tồn tại
+    const renamed = await call("put", `/categories/${other.id}`)
+      .send({ name: "Lương", kind: "income" })
+      .expect(409);
+    assert.match(renamed.body.message, /Tên danh mục đã tồn tại/);
+    // Tên rỗng/chỉ khoảng trắng hoặc quá dài bị từ chối
+    await call("post", "/categories").send({ name: "   ", kind: "expense" }).expect(400);
+    await call("post", "/categories")
+      .send({ name: "x".repeat(61), kind: "expense" })
+      .expect(400);
+    await call("delete", `/categories/${c.id}`).expect(204);
+    await call("delete", `/categories/${other.id}`).expect(204);
+  });
+  await t.test("category update keeps color when omitted", async () => {
+    const c = (
+      await call("post", "/categories")
+        .send({ name: "Giữ màu", kind: "expense", color: "#3B82F6" })
+        .expect(201)
+    ).body;
+    const updated = await call("put", `/categories/${c.id}`)
+      .send({ name: "Giữ màu 2", kind: "expense" })
+      .expect(200);
+    assert.equal(updated.body.color, "#3B82F6");
+    await call("delete", `/categories/${c.id}`).expect(204);
+  });
+  await t.test("category kind cannot change once used; unused can", async () => {
+    const c = (
+      await call("post", "/categories")
+        .send({ name: "Đổi loại", kind: "expense" })
+        .expect(201)
+    ).body;
+    // Chưa dùng: đổi loại được
+    const flipped = await call("put", `/categories/${c.id}`)
+      .send({ name: "Đổi loại", kind: "income" })
+      .expect(200);
+    assert.equal(flipped.body.kind, "income");
+    const trx = (
+      await call("post", "/transactions")
+        .send({
+          categoryId: c.id,
+          kind: "income",
+          amount: 1000,
+          occurredOn: "2026-10-05",
+          note: "",
+          paymentMethod: "cash",
+        })
+        .expect(201)
+    ).body;
+    // Đã có giao dịch: không đổi loại, báo lỗi rõ ràng; đổi tên vẫn được
+    const blocked = await call("put", `/categories/${c.id}`)
+      .send({ name: "Đổi loại", kind: "expense" })
+      .expect(409);
+    assert.match(blocked.body.message, /không thể đổi loại thu\/chi/);
+    await call("put", `/categories/${c.id}`)
+      .send({ name: "Đổi tên được", kind: "income" })
+      .expect(200);
+    // Danh mục đang có giao dịch không xóa được
+    await call("delete", `/categories/${c.id}`).expect(409);
+    await call("delete", `/transactions/${trx.id}`).expect(204);
+    await call("delete", `/categories/${c.id}`).expect(204);
+    // Người dùng khác không sửa/xóa được danh mục này (đã xóa -> 404)
+    await call("delete", `/categories/${c.id}`).expect(404);
+  });
   await t.test("expired and revoked sessions cannot be reused", async () => {
     await db.query(
       "UPDATE sessions SET expires_at=now()-interval '1 second' WHERE user_id=$1",

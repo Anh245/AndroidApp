@@ -1,4 +1,4 @@
-import { categoryBody, uuid } from "./category.schemas.js";
+import { categoryBody, categoryUpdateBody, uuid } from "./category.schemas.js";
 import { createCategoryService } from "./category.service.js";
 
 export function createCategoryController(prisma) {
@@ -11,7 +11,7 @@ export function createCategoryController(prisma) {
     },
     update: async (req, res) => {
       const id = uuid.parse(req.params.id);
-      const body = categoryBody.parse(req.body);
+      const body = categoryUpdateBody.parse(req.body);
       res.json(await service.update(req.user.id, id, body));
     },
     remove: async (req, res) => {

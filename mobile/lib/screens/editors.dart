@@ -358,7 +358,7 @@ class _CategoryEditorState extends State<CategoryEditor> {
                         ),
                       ],
                       selected: {kind},
-                      onSelectionChanged: busy
+                      onSelectionChanged: busy || widget.category != null
                           ? null
                           : (s) => setState(() => kind = s.first),
                     ),
@@ -396,7 +396,7 @@ class _CategoryEditorState extends State<CategoryEditor> {
                     ),
                     const SizedBox(height: AppSpace.xl),
                     const Text(
-                      'Danh mục đã có giao dịch hoặc ngân sách chỉ đổi được tên và màu; không đổi loại thu/chi.',
+                      'Loại thu/chi không thể thay đổi sau khi tạo danh mục; bạn chỉ đổi được tên và màu.',
                     ),
                     const SizedBox(height: AppSpace.xl),
                     FilledButton(

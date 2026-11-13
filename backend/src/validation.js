@@ -16,15 +16,24 @@ export const date = z
     const d = new Date(`${s}T00:00:00Z`);
     return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === s;
   }, "Ngày không hợp lệ");
+// Chuẩn hóa tên: Unicode NFC và gộp nhiều khoảng trắng liên tiếp thành một,
+// để "Học tập" (NFC/NFD) và "Học  tập" không bị coi là các tên khác nhau.
+const categoryName = z
+  .string()
+  .max(200)
+  .transform((s) => s.normalize("NFC").replace(/\s+/g, " ").trim())
+  .pipe(z.string().min(1).max(60));
+const categoryColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 export const categoryBody = z
   .object({
-    name: z.string().trim().min(1).max(60),
+    name: categoryName,
     kind,
-    color: z
-      .string()
-      .regex(/^#[0-9A-Fa-f]{6}$/)
-      .default("#0F766E"),
+    color: categoryColor.default("#0F766E"),
   })
+  .strict();
+// Cập nhật: không gửi color thì giữ nguyên màu cũ (không reset về mặc định).
+export const categoryUpdateBody = z
+  .object({ name: categoryName, kind, color: categoryColor.optional() })
   .strict();
 export const transactionBody = z
   .object({

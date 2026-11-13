@@ -1,1 +1,1 @@
-export { categoryBody, uuid } from "../../validation.js";
+export { categoryBody, categoryUpdateBody, uuid } from "../../validation.js";
