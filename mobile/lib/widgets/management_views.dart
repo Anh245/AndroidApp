@@ -290,6 +290,7 @@ class BudgetsView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _AdaptiveColumns(
+                minWidth: 165,
                 children: [
                   _Figure(
                     label: 'Đã chi',
@@ -327,6 +328,23 @@ class BudgetsView extends StatelessWidget {
           title: 'Kế hoạch chi tiêu',
           detail: '${budgets.length} danh mục',
         ),
+        if (budgets.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _Badge(
+                  text: '${budgets.length - over} trong kế hoạch',
+                  color: c.primary,
+                ),
+                if (over > 0)
+                  _Badge(text: '$over vượt hạn mức', color: c.error),
+              ],
+            ),
+          ),
+        ],
         if (budgets.isEmpty)
           const EmptyState(
             title: 'Chưa đặt ngân sách tháng này',
@@ -380,10 +398,11 @@ class _BudgetCard extends StatelessWidget {
         : 'Trong kế hoạch';
     return Card(
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onEdit : null,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -422,14 +441,18 @@ class _BudgetCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              LinearProgressIndicator(
-                value: ratio.clamp(0, 1),
-                minHeight: 8,
-                color: color,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: LinearProgressIndicator(
+                  value: ratio.clamp(0, 1),
+                  minHeight: 10,
+                  backgroundColor: c.surfaceContainerHighest,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 16),
               _AdaptiveColumns(
-                minWidth: 115,
+                minWidth: 165,
                 children: [
                   _Figure(
                     label: 'Đã chi',
@@ -447,14 +470,26 @@ class _BudgetCard extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Divider(height: 1),
               ),
-              Text(
-                over
-                    ? 'Vượt ${money(spent - limit)}'
-                    : 'Còn ${money(limit - spent)}',
-                style: type.bodyMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    over ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                    size: 20,
+                    color: color,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      over
+                          ? 'Vượt ${money(spent - limit)}'
+                          : 'Còn ${money(limit - spent)}',
+                      style: type.bodyMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
