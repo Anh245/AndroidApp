@@ -438,6 +438,16 @@ class _BudgetEditorState extends State<BudgetEditor> {
   late final TextEditingController amount;
   String? categoryId;
   bool busy = false;
+  List<Map<String, dynamic>> get expenseCategories => widget.categories
+      .where((c) => c['kind'] == 'expense')
+      .toList();
+
+  Map<String, dynamic>? get selectedCategory {
+    for (final item in expenseCategories) {
+      if (item['id'] == categoryId) return item;
+    }
+    return null;
+  }
   @override
   void initState() {
     super.initState();
@@ -475,76 +485,184 @@ class _BudgetEditorState extends State<BudgetEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: !busy,
-    child: Scaffold(
-      appBar: AppBar(title: const Text('Ngân sách tháng')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppLayout.editorWidth),
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpace.xl),
-            children: [
-              Form(
-                key: form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Tháng ${widget.month.split('-').reversed.join('/')}',
-                      style: Theme.of(context).textTheme.titleLarge,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final editing = widget.budget != null;
+    final monthLabel = widget.month.split('-').reversed.join('/');
+    return PopScope(
+      canPop: !busy,
+      child: Scaffold(
+        appBar: AppBar(title: Text(editing ? 'Sửa ngân sách' : 'Thêm ngân sách')),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppLayout.editorWidth),
+            child: Form(
+              key: form,
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpace.xl),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    const SizedBox(height: AppSpace.xl),
-                    DropdownButtonFormField<String>(
-                      initialValue: categoryId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Danh mục chi tiêu',
-                      ),
-                      items: widget.categories
-                          .where((c) => c['kind'] == 'expense')
-                          .map(
-                            (c) => DropdownMenuItem<String>(
-                              value: c['id'],
-                              child: Text(c['name']),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 26,
+                          backgroundColor: scheme.primary,
+                          child: Icon(
+                            editing ? Icons.tune_rounded : Icons.savings_rounded,
+                            color: scheme.onPrimary,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                editing ? 'Điều chỉnh kế hoạch' : 'Lập kế hoạch chi tiêu',
+                                style: text.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Thiết lập hạn mức cho tháng $monthLabel',
+                                style: text.bodyMedium?.copyWith(
+                                  color: scheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Thông tin ngân sách', style: text.titleLarge),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Chọn danh mục và nhập số tiền bạn dự định chi.',
+                    style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String>(
+                    initialValue: categoryId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Danh mục chi tiêu',
+                      prefixIcon: Icon(Icons.category_outlined),
+                      helperText: 'Mỗi danh mục có một ngân sách trong tháng',
+                    ),
+                    items: expenseCategories
+                        .map((c) => DropdownMenuItem<String>(
+                              value: c['id'] as String,
+                              child: Text(c['name'].toString(), overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: busy || editing
+                        ? null
+                        : (value) => setState(() => categoryId = value),
+                    validator: (value) => value == null ? 'Vui lòng chọn danh mục' : null,
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: amount,
+                    enabled: !busy,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: validateAmount,
+                    decoration: const InputDecoration(
+                      labelText: 'Hạn mức chi tiêu',
+                      hintText: 'Ví dụ: 2000000',
+                      prefixIcon: Icon(Icons.payments_outlined),
+                      suffixText: 'VND',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  AnimatedBuilder(
+                    animation: amount,
+                    builder: (context, _) {
+                      final entered = int.tryParse(amount.text) ?? 0;
+                      return Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+  children: [
+    Icon(
+      Icons.visibility_outlined,
+      size: 19,
+      color: scheme.primary,
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: Text(
+        'Xem trước kế hoạch',
+        style: text.titleSmall,
+        softWrap: true,
+      ),
+    ),
+  ],
+),
+                            const SizedBox(height: 12),
+                            Text(
+                              selectedCategory?['name']?.toString() ?? 'Chưa chọn danh mục',
+                              style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              money(entered),
+                              style: text.headlineSmall?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text('Hạn mức tháng $monthLabel', style: text.bodySmall),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: busy ? null : save,
+                    icon: busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                          .toList(),
-                      onChanged: busy || widget.budget != null
-                          ? null
-                          : (v) => setState(() => categoryId = v),
-                      validator: (v) => v == null ? 'Chọn danh mục' : null,
+                        : const Icon(Icons.check_circle_outline_rounded),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(busy ? 'Đang lưu…' : (editing ? 'Lưu thay đổi' : 'Tạo ngân sách')),
                     ),
-                    const SizedBox(height: AppSpace.xl),
-                    TextFormField(
-                      controller: amount,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: validateAmount,
-                      decoration: const InputDecoration(
-                        labelText: 'Hạn mức chi tiêu',
-                        suffixText: 'VND',
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.lg),
-                    const Text(
-                      'Mỗi danh mục có một hạn mức trong tháng. Lưu lại sẽ cập nhật hạn mức đã có.',
-                    ),
-                    const SizedBox(height: AppSpace.xl),
-                    FilledButton(
-                      onPressed: busy ? null : save,
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpace.md),
-                        child: Text(busy ? 'Đang lưu…' : 'Lưu ngân sách'),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Hạn mức sẽ được lưu cho đúng danh mục và tháng đã chọn.',
+                    textAlign: TextAlign.center,
+                    style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
