@@ -243,10 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
         IconButton(
           tooltip: 'Tải lại',
           onPressed: loading ? null : load,
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh_rounded),
         ),
         PopupMenuButton<String>(
           tooltip: 'Tài khoản',
+          icon: const Icon(Icons.account_circle_outlined),
           onSelected: (value) async {
             if (value == 'logout') {
               try {

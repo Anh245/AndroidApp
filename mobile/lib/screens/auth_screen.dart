@@ -57,10 +57,30 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: AppLayout.emptyIconSize,
-                    color: Theme.of(context).colorScheme.primary,
+                  Center(
+                    child: Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer
+                            .withValues(alpha: 0.35),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.35),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 38,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppSpace.lg),
                   Text(
@@ -69,9 +89,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
                   const SizedBox(height: AppSpace.sm),
-                  const Text(
+                  Text(
                     'Hiểu dòng tiền. Chủ động mỗi ngày.',
                     textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                   const SizedBox(height: AppSpace.section),
                   AnimatedSwitcher(
@@ -173,12 +196,30 @@ class _AuthScreenState extends State<AuthScreen> {
                       onPressed: busy ? null : submit,
                       child: Padding(
                         padding: const EdgeInsets.all(AppSpace.md),
-                        child: Text(
-                          busy
-                              ? 'Đang xử lý…'
-                              : register
-                              ? 'Đăng ký'
-                              : 'Đăng nhập',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (busy) ...[
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpace.sm),
+                            ],
+                            Text(
+                              busy
+                                  ? 'Đang xử lý…'
+                                  : register
+                                  ? 'Đăng ký'
+                                  : 'Đăng nhập',
+                            ),
+                          ],
                         ),
                       ),
                     ),
